@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Scheda Palestra</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #131311;
+    --surface: #1d1d19;
+    --surface-2: #262622;
+    --line: #34342e;
+    --ink: #f2efe6;
+    --ink-dim: #a8a598;
+    --ink-faint: #6f6c60;
+    --accent: #d9482a;
+    --accent-ink: #fbe9e2;
+    --done: #7fae5f;
+    --done-bg: #1c2417;
+  }
+  :root:not([data-theme="light"]) { color-scheme: dark; }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f4f2ec;
+      --surface: #ffffff;
+      --surface-2: #eeece3;
+      --line: #ddd9cc;
+      --ink: #1b1a16;
+      --ink-dim: #67645a;
+      --ink-faint: #989485;
+      --accent: #c8401f;
+      --accent-ink: #ffffff;
+      --done: #4f7a37;
+      --done-bg: #e6efdd;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f4f2ec;
+    --surface: #ffffff;
+    --surface-2: #eeece3;
+    --line: #ddd9cc;
+    --ink: #1b1a16;
+    --ink-dim: #67645a;
+    --ink-faint: #989485;
+    --accent: #c8401f;
+    --accent-ink: #ffffff;
+    --done: #4f7a37;
+    --done-bg: #e6efdd;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  body {
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    min-height: 100%;
+  }
+
+  .wrap {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 0 16px 48px;
+  }
+
+  /* ---------- HEADER / TIMER ---------- */
+  .head {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    z-index: 10;
+    background: var(--bg);
+    padding: 18px 16px 14px;
+    margin: 0 -16px;
+    border-bottom: 1px solid var(--line);
+  }
+  .head-inner { max-width: 640px; margin: 0 auto; }
+  .title-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  h1 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 30px;
+    letter-spacing: 0.01em;
+    margin: 0;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+  .theme-btn {
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--ink-dim);
+    border-radius: 8px;
+    width: 34px;
+    height: 34px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  .date-line {
+    color: var(--ink-faint);
+    font-size: 13px;
+    margin-top: 2px;
+  }
+
+  .timer-row {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 14px;
+  }
+  .timer-display {
+    font-family: 'Roboto Mono', monospace;
+    font-weight: 700;
+    font-size: 26px;
+    letter-spacing: 0.02em;
+    flex: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .timer-display.running { color: var(--accent); }
+  .timer-btns { display: flex; gap: 8px; }
+  .tbtn {
+    border: none;
+    border-radius: 8px;
+    padding: 9px 14px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .tbtn.start { background: var(--accent); color: var(--accent-ink); }
+  .tbtn.stop { background: var(--surface-2); color: var(--ink); border: 1px solid var(--line); }
+  .tbtn.reset { background: transparent; color: var(--ink-faint); border: 1px solid var(--line); }
+
+  .progress-row {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .progress-bar {
+    flex: 1;
+    height: 6px;
+    background: var(--surface-2);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 4px;
+    transition: width 0.25s ease;
+  }
+  .progress-count {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-dim);
+    white-space: nowrap;
+  }
+
+  /* ---------- SECTIONS ---------- */
+  .sec-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin: 22px 2px 8px;
+  }
+  .sec-head:first-child { margin-top: 4px; }
+  .sec-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 19px;
+    letter-spacing: 0.01em;
+    color: var(--ink);
+  }
+  .sec-count {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-faint);
+  }
+
+  /* ---------- EXERCISE LIST ---------- */
+  .list { margin-top: 6px; display: flex; flex-direction: column; gap: 10px; }
+
+  .ex {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 14px;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .ex.done { background: var(--done-bg); border-color: var(--done); }
+
+  .ex-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+  }
+  .check {
+    flex: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    border: 2px solid var(--line);
+    background: var(--surface-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+  }
+  .ex.done .check {
+    background: var(--done);
+    border-color: var(--done);
+  }
+  .check svg { width: 15px; height: 15px; opacity: 0; }
+  .ex.done .check svg { opacity: 1; }
+  .check svg path { stroke: var(--surface); }
+
+  .ex-info { flex: 1; min-width: 0; }
+  .ex-name {
+    font-weight: 600;
+    font-size: 15.5px;
+    line-height: 1.25;
+  }
+  .ex.done .ex-name { color: var(--ink-dim); text-decoration: line-through; text-decoration-color: var(--ink-faint); }
+  .ex-meta {
+    margin-top: 3px;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 12.5px;
+    color: var(--ink-dim);
+  }
+  .ex-idx {
+    flex: none;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-faint);
+    padding-top: 4px;
+  }
+
+  .ex-detail {
+    display: none;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+  }
+  .ex.open .ex-detail { display: block; }
+
+  .field-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .field label {
+    display: block;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ink-faint);
+    margin-bottom: 4px;
+  }
+  .field input {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    color: var(--ink);
+    font-family: 'Roboto Mono', monospace;
+    font-weight: 500;
+    font-size: 14px;
+    padding: 8px 8px;
+    text-align: center;
+  }
+  .field input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  .note-field { margin-top: 8px; }
+  .note-field label {
+    display: block;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ink-faint);
+    margin-bottom: 4px;
+  }
+  .note-field textarea {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    font-size: 13.5px;
+    padding: 8px 10px;
+    resize: vertical;
+    min-height: 36px;
+  }
+  .note-field textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .note-preview {
+    margin-top: 6px;
+    font-size: 12.5px;
+    color: var(--ink-dim);
+    font-style: italic;
+    overflow-wrap: anywhere;
+  }
+
+  /* ---------- FOOTER ---------- */
+  .footer-actions {
+    margin-top: 22px;
+    display: flex;
+    gap: 10px;
+  }
+  .fbtn {
+    flex: 1;
+    padding: 13px;
+    border-radius: 10px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+  }
+  .fbtn.primary { background: var(--accent); color: var(--accent-ink); }
+  .fbtn.secondary { background: transparent; color: var(--ink-dim); border: 1px solid var(--line); }
+
+  .history {
+    margin-top: 24px;
+  }
+  .history h2 {
+    font-family: 'Barlow Condensed', sans-serif;
+    text-transform: uppercase;
+    font-size: 15px;
+    letter-spacing: 0.04em;
+    color: var(--ink-faint);
+    margin: 0 0 8px;
+    font-weight: 600;
+  }
+  .hist-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 2px;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+    color: var(--ink-dim);
+  }
+  .hist-row:last-child { border-bottom: none; }
+  .hist-time { font-family: 'Roboto Mono', monospace; color: var(--ink); }
+  .empty-hist { font-size: 13px; color: var(--ink-faint); padding: 6px 2px; }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%) translateY(20px);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    padding: 10px 18px;
+    border-radius: 9px;
+    font-size: 13.5px;
+    font-weight: 500;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 50;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="head">
+    <div class="head-inner">
+      <div class="title-row">
+        <div>
+          <h1>Scheda Palestra</h1>
+          <div class="date-line" id="dateLine"></div>
+        </div>
+        <button class="theme-btn" id="themeBtn" title="Cambia tema">◐</button>
+      </div>
+
+      <div class="timer-row">
+        <div class="timer-display" id="timerDisplay">00:00:00</div>
+        <div class="timer-btns">
+          <button class="tbtn start" id="timerToggle">Avvia</button>
+          <button class="tbtn reset" id="timerReset">↺</button>
+        </div>
+      </div>
+
+      <div class="progress-row">
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="progress-count" id="progressCount">0/15</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="list" id="list"></div>
+
+  <div class="footer-actions">
+    <button class="fbtn secondary" id="newSession">Nuova sessione</button>
+    <button class="fbtn primary" id="finishSession">Chiudi sessione</button>
+  </div>
+
+  <div class="history">
+    <h2>Sessioni recenti</h2>
+    <div id="historyList"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var STORAGE_KEY = "palestra_scheda_v1";
+  var HISTORY_KEY = "palestra_storico_v1";
+  var THEME_KEY = "palestra_theme_v1";
+
+  var defaultExercises = [
+    { category: "Corsa", name: "Corsa", sets: "1", reps: "10 min", weight: "10 km/h", note: "Riscaldamento" },
+
+    { category: "Spalle", name: "Manubri spalle", sets: "3", reps: "8", weight: "10", note: "" },
+    { category: "Spalle", name: "Delts machine", sets: "3", reps: "8", weight: "15", note: "" },
+
+    { category: "Schiena", name: "Lat machine presa stretta", sets: "3", reps: "8", weight: "40", note: "" },
+    { category: "Schiena", name: "Pulley vogatore", sets: "3", reps: "8", weight: "35", note: "" },
+    { category: "Schiena", name: "Pull-down", sets: "3", reps: "8", weight: "30", note: "" },
+
+    { category: "Braccia", name: "Bicipiti manubri, panca inclinata", sets: "3", reps: "8", weight: "8", note: "" },
+    { category: "Braccia", name: "Tricipiti ai cavi", sets: "3", reps: "8", weight: "15", note: "" },
+
+    { category: "Addome", name: "Addominali total, macchina", sets: "3", reps: "15", weight: "30", note: "" },
+
+    { category: "Petto", name: "Manubri petto piano", sets: "3", reps: "8", weight: "12", note: "" },
+    { category: "Petto", name: "Manubri petto inclinato", sets: "3", reps: "8", weight: "12", note: "" },
+    { category: "Petto", name: "Pectoral machine", sets: "3", reps: "8", weight: "25", note: "Regolazione alt. 5" },
+
+    { category: "Gambe", name: "Leg curl", sets: "3", reps: "8", weight: "30", note: "Sedile posizione 4" },
+    { category: "Gambe", name: "Leg press Panatta", sets: "3", reps: "10", weight: "40", note: "" },
+    { category: "Gambe", name: "Leg extension", sets: "3", reps: "8", weight: "25", note: "Regolazione: tutto" },
+
+    { category: "Ultima corsa", name: "Corsa", sets: "1", reps: "10 min", weight: "10 km/h", note: "Defaticamento — modifica pure i valori" }
+  ];
+
+  var state = null;
+  var timerInterval = null;
+
+  function loadState() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (parsed && Array.isArray(parsed.exercises) && parsed.exercises.length === defaultExercises.length) {
+          return parsed;
+        }
+      }
+    } catch (e) {}
+    return {
+      exercises: defaultExercises.map(function(ex){
+        return { category: ex.category, name: ex.name, sets: ex.sets, reps: ex.reps, weight: ex.weight, note: ex.note, done: false };
+      }),
+      elapsedMs: 0,
+      running: false,
+      startedAt: null
+    };
+  }
+
+  function saveState() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+  }
+
+  function loadHistory() {
+    try {
+      var raw = localStorage.getItem(HISTORY_KEY);
+      var arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) { return []; }
+  }
+
+  function saveHistory(arr) {
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(arr.slice(0, 10))); } catch (e) {}
+  }
+
+  function pad(n) { return n < 10 ? "0" + n : "" + n; }
+
+  function formatElapsed(ms) {
+    var totalSec = Math.floor(ms / 1000);
+    var h = Math.floor(totalSec / 3600);
+    var m = Math.floor((totalSec % 3600) / 60);
+    var s = totalSec % 60;
+    return pad(h) + ":" + pad(m) + ":" + pad(s);
+  }
+
+  function currentElapsed() {
+    var ms = state.elapsedMs;
+    if (state.running && state.startedAt) {
+      ms += (Date.now() - state.startedAt);
+    }
+    return ms;
+  }
+
+  function renderTimer() {
+    var display = document.getElementById("timerDisplay");
+    var toggle = document.getElementById("timerToggle");
+    display.textContent = formatElapsed(currentElapsed());
+    display.classList.toggle("running", !!state.running);
+    toggle.textContent = state.running ? "Pausa" : "Avvia";
+    toggle.classList.toggle("start", !state.running);
+    toggle.classList.toggle("stop", !!state.running);
+  }
+
+  function tickTimer() {
+    renderTimer();
+  }
+
+  function startTimerLoop() {
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(tickTimer, 1000);
+  }
+
+  function toast(msg) {
+    var t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toast._h);
+    toast._h = setTimeout(function(){ t.classList.remove("show"); }, 2200);
+  }
+
+  function checkIcon() {
+    return '<svg viewBox="0 0 16 16" fill="none"><path d="M3 8.5L6.2 11.7L13 4.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+
+  function render() {
+    var list = document.getElementById("list");
+    list.innerHTML = "";
+    var doneCount = 0;
+
+    // pre-calcola conteggio per categoria
+    var catTotals = {};
+    state.exercises.forEach(function(ex) {
+      if (!catTotals[ex.category]) catTotals[ex.category] = { done: 0, total: 0 };
+      catTotals[ex.category].total++;
+      if (ex.done) catTotals[ex.category].done++;
+    });
+
+    var lastCategory = null;
+
+    state.exercises.forEach(function(ex, idx) {
+      if (ex.done) doneCount++;
+
+      if (ex.category !== lastCategory) {
+        lastCategory = ex.category;
+        var head = document.createElement("div");
+        head.className = "sec-head";
+        var ct = catTotals[ex.category];
+        head.innerHTML =
+          '<div class="sec-title">' + escapeHtml(ex.category) + '</div>' +
+          '<div class="sec-count">' + ct.done + '/' + ct.total + '</div>';
+        list.appendChild(head);
+      }
+
+      var card = document.createElement("div");
+      card.className = "ex" + (ex.done ? " done" : "") + (ex.open ? " open" : "");
+      card.dataset.idx = idx;
+
+      var metaBits = [];
+      if (ex.sets) metaBits.push(ex.sets + (ex.reps ? "×" + ex.reps : ""));
+      else if (ex.reps) metaBits.push(ex.reps);
+      if (ex.weight) metaBits.push(ex.weight + (isNaN(parseFloat(ex.weight)) ? "" : " kg"));
+      var metaStr = metaBits.join("  ·  ");
+
+      card.innerHTML =
+        '<div class="ex-top">' +
+          '<div class="ex-idx">' + pad(idx + 1) + '</div>' +
+          '<div class="check">' + checkIcon() + '</div>' +
+          '<div class="ex-info">' +
+            '<div class="ex-name">' + escapeHtml(ex.name) + '</div>' +
+            '<div class="ex-meta">' + escapeHtml(metaStr) + '</div>' +
+            (ex.note && !ex.open ? '<div class="note-preview">' + escapeHtml(ex.note) + '</div>' : '') +
+          '</div>' +
+        '</div>' +
+        '<div class="ex-detail">' +
+          '<div class="field-grid">' +
+            '<div class="field"><label>Serie</label><input type="text" inputmode="numeric" data-field="sets" value="' + escapeAttr(ex.sets) + '"></div>' +
+            '<div class="field"><label>Ripetizioni</label><input type="text" data-field="reps" value="' + escapeAttr(ex.reps) + '"></div>' +
+            '<div class="field"><label>Peso / velocità</label><input type="text" data-field="weight" value="' + escapeAttr(ex.weight) + '"></div>' +
+          '</div>' +
+          '<div class="note-field">' +
+            '<label>Altezza macchina / note</label>' +
+            '<textarea data-field="note" placeholder="Es. sedile posizione 4, regolazione braccio...">' + escapeHtml(ex.note) + '</textarea>' +
+          '</div>' +
+        '</div>';
+
+      var top = card.querySelector(".ex-top");
+      top.addEventListener("click", function(e) {
+        // toggle open/close panel, but the checkbox itself has its own click zone
+        if (e.target.closest(".check")) {
+          ex.done = !ex.done;
+          if (ex.done && !state.running) {
+            // auto-start timer on first exercise checked, if not already running
+          }
+          saveState();
+          render();
+          return;
+        }
+        ex.open = !ex.open;
+        render();
+      });
+
+      card.querySelectorAll("[data-field]").forEach(function(input) {
+        input.addEventListener("click", function(e){ e.stopPropagation(); });
+        input.addEventListener("change", function() {
+          ex[input.dataset.field] = input.value;
+          saveState();
+          if (input.dataset.field !== "note") render();
+        });
+        input.addEventListener("input", function() {
+          ex[input.dataset.field] = input.value;
+          saveState();
+        });
+      });
+
+      list.appendChild(card);
+    });
+
+    var total = state.exercises.length;
+    document.getElementById("progressCount").textContent = doneCount + "/" + total;
+    document.getElementById("progressFill").style.width = (total ? (doneCount / total * 100) : 0) + "%";
+
+    renderTimer();
+    renderHistory();
+  }
+
+  function escapeHtml(str) {
+    return String(str == null ? "" : str).replace(/[&<>"']/g, function(c){
+      return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c];
+    });
+  }
+  function escapeAttr(str) { return escapeHtml(str); }
+
+  function renderHistory() {
+    var hist = loadHistory();
+    var el = document.getElementById("historyList");
+    if (!hist.length) {
+      el.innerHTML = '<div class="empty-hist">Nessuna sessione registrata.</div>';
+      return;
+    }
+    el.innerHTML = hist.map(function(h) {
+      return '<div class="hist-row"><span>' + escapeHtml(h.date) + ' · ' + h.done + '/' + h.total + ' esercizi</span><span class="hist-time">' + escapeHtml(h.duration) + '</span></div>';
+    }).join("");
+  }
+
+  function setDateLine() {
+    var d = new Date();
+    var opts = { weekday: 'long', day: 'numeric', month: 'long' };
+    var str = d.toLocaleDateString('it-IT', opts);
+    document.getElementById("dateLine").textContent = str.charAt(0).toUpperCase() + str.slice(1);
+  }
+
+  // ---------- Timer controls ----------
+  function toggleTimer() {
+    if (state.running) {
+      state.elapsedMs += (Date.now() - state.startedAt);
+      state.running = false;
+      state.startedAt = null;
+      clearInterval(timerInterval);
+      timerInterval = null;
+    } else {
+      state.running = true;
+      state.startedAt = Date.now();
+      startTimerLoop();
+    }
+    saveState();
+    renderTimer();
+  }
+
+  function resetTimer() {
+    state.elapsedMs = 0;
+    state.running = false;
+    state.startedAt = null;
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    saveState();
+    renderTimer();
+    toast("Timer azzerato");
+  }
+
+  function finishSession() {
+    var elapsed = currentElapsed();
+    var doneCount = state.exercises.filter(function(e){ return e.done; }).length;
+    var hist = loadHistory();
+    hist.unshift({
+      date: new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' }),
+      duration: formatElapsed(elapsed),
+      done: doneCount,
+      total: state.exercises.length
+    });
+    saveHistory(hist);
+
+    state.running = false;
+    state.startedAt = null;
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    saveState();
+    toast("Sessione salvata: " + formatElapsed(elapsed));
+    render();
+  }
+
+  function newSession() {
+    state.exercises.forEach(function(ex){ ex.done = false; ex.open = false; });
+    state.elapsedMs = 0;
+    state.running = false;
+    state.startedAt = null;
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    saveState();
+    render();
+    toast("Nuova sessione pronta");
+  }
+
+  function applyTheme(t) {
+    if (t === "light" || t === "dark") {
+      document.documentElement.setAttribute("data-theme", t);
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+    }
+  }
+
+  function initTheme() {
+    var saved = null;
+    try { saved = localStorage.getItem(THEME_KEY); } catch(e){}
+    applyTheme(saved);
+    document.getElementById("themeBtn").addEventListener("click", function(){
+      var current = document.documentElement.getAttribute("data-theme");
+      var next;
+      if (current === "dark") next = "light";
+      else if (current === "light") next = null;
+      else next = "dark";
+      applyTheme(next);
+      try {
+        if (next) localStorage.setItem(THEME_KEY, next);
+        else localStorage.removeItem(THEME_KEY);
+      } catch(e){}
+    });
+  }
+
+  function init() {
+    try {
+      state = loadState();
+    } catch (e) {
+      state = loadState();
+    }
+    setDateLine();
+    initTheme();
+
+    document.getElementById("timerToggle").addEventListener("click", toggleTimer);
+    document.getElementById("timerReset").addEventListener("click", resetTimer);
+    document.getElementById("finishSession").addEventListener("click", finishSession);
+    document.getElementById("newSession").addEventListener("click", newSession);
+
+    if (state.running) startTimerLoop();
+    render();
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
