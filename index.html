@@ -318,6 +318,67 @@
     overflow-wrap: anywhere;
   }
 
+  .sec-right { display: flex; align-items: baseline; gap: 10px; }
+  .sec-add {
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--ink-dim);
+    border-radius: 7px;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 9px;
+    cursor: pointer;
+  }
+
+  .name-field { margin-bottom: 8px; }
+  .name-field input { text-align: left; font-family: 'Inter', sans-serif; font-weight: 600; }
+
+  .del-btn {
+    margin-top: 10px;
+    width: 100%;
+    padding: 9px;
+    border-radius: 8px;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .add-box {
+    margin-top: 22px;
+    background: var(--surface);
+    border: 1px dashed var(--line);
+    border-radius: 12px;
+    padding: 12px 14px;
+  }
+  .add-box h2 {
+    font-family: 'Barlow Condensed', sans-serif;
+    text-transform: uppercase;
+    font-size: 15px;
+    letter-spacing: 0.04em;
+    color: var(--ink-faint);
+    margin: 0 0 8px;
+    font-weight: 600;
+  }
+  .add-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .add-grid input {
+    width: 100%;
+    min-width: 0;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    padding: 9px 10px;
+  }
+  .add-grid input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .add-box .fbtn { width: 100%; margin-top: 8px; }
+
   /* ---------- FOOTER ---------- */
   .footer-actions {
     margin-top: 22px;
@@ -411,6 +472,16 @@
 
   <div class="list" id="list"></div>
 
+  <div class="add-box">
+    <h2>Aggiungi esercizio</h2>
+    <div class="add-grid">
+      <input type="text" id="addName" placeholder="Nome esercizio">
+      <input type="text" id="addCategory" list="categoryList" placeholder="Gruppo (es. Petto)">
+    </div>
+    <datalist id="categoryList"></datalist>
+    <button class="fbtn primary" id="addBtn">+ Aggiungi</button>
+  </div>
+
   <div class="footer-actions">
     <button class="fbtn secondary" id="newSession">Nuova sessione</button>
     <button class="fbtn primary" id="finishSession">Chiudi sessione</button>
@@ -467,7 +538,7 @@
       var raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         var parsed = JSON.parse(raw);
-        if (parsed && Array.isArray(parsed.exercises) && parsed.exercises.length === defaultExercises.length) {
+        if (parsed && Array.isArray(parsed.exercises) && parsed.exercises.length > 0) {
           return parsed;
         }
       }
@@ -572,7 +643,15 @@
         var ct = catTotals[ex.category];
         head.innerHTML =
           '<div class="sec-title">' + escapeHtml(ex.category) + '</div>' +
-          '<div class="sec-count">' + ct.done + '/' + ct.total + '</div>';
+          '<div class="sec-right">' +
+            '<div class="sec-count">' + ct.done + '/' + ct.total + '</div>' +
+            '<button class="sec-add" title="Aggiungi esercizio a ' + escapeAttr(ex.category) + '">+</button>' +
+          '</div>';
+        (function(cat){
+          head.querySelector(".sec-add").addEventListener("click", function(){
+            addExercise("Nuovo esercizio", cat);
+          });
+        })(ex.category);
         list.appendChild(head);
       }
 
@@ -597,6 +676,7 @@
           '</div>' +
         '</div>' +
         '<div class="ex-detail">' +
+          '<div class="field name-field"><label>Nome esercizio</label><input type="text" data-field="name" value="' + escapeAttr(ex.name) + '"></div>' +
           '<div class="field-grid">' +
             '<div class="field"><label>Serie</label><input type="text" inputmode="numeric" data-field="sets" value="' + escapeAttr(ex.sets) + '"></div>' +
             '<div class="field"><label>Ripetizioni</label><input type="text" data-field="reps" value="' + escapeAttr(ex.reps) + '"></div>' +
@@ -606,6 +686,7 @@
             '<label>Altezza macchina / note</label>' +
             '<textarea data-field="note" placeholder="Es. sedile posizione 4, regolazione braccio...">' + escapeHtml(ex.note) + '</textarea>' +
           '</div>' +
+          '<button class="del-btn">Rimuovi esercizio</button>' +
         '</div>';
 
       var top = card.querySelector(".ex-top");
@@ -637,8 +718,23 @@
         });
       });
 
+      card.querySelector(".del-btn").addEventListener("click", function(e) {
+        e.stopPropagation();
+        if (!confirm('Rimuovere "' + ex.name + '" dalla scheda?')) return;
+        state.exercises.splice(state.exercises.indexOf(ex), 1);
+        saveState();
+        render();
+        toast("Esercizio rimosso");
+      });
+
       list.appendChild(card);
     });
+
+    var cats = [];
+    state.exercises.forEach(function(ex){ if (cats.indexOf(ex.category) < 0) cats.push(ex.category); });
+    document.getElementById("categoryList").innerHTML = cats.map(function(c){
+      return '<option value="' + escapeAttr(c) + '">';
+    }).join("");
 
     var total = state.exercises.length;
     document.getElementById("progressCount").textContent = doneCount + "/" + total;
@@ -646,6 +742,30 @@
 
     renderTimer();
     renderHistory();
+  }
+
+  function addExercise(name, category) {
+    var ex = { category: category, name: name, sets: "3", reps: "8", weight: "", note: "", done: false, open: true };
+    // inserisce dopo l'ultimo esercizio dello stesso gruppo, altrimenti in fondo
+    var pos = -1;
+    state.exercises.forEach(function(e, i){ if (e.category === category) pos = i; });
+    if (pos >= 0) state.exercises.splice(pos + 1, 0, ex);
+    else state.exercises.push(ex);
+    saveState();
+    render();
+    toast("Esercizio aggiunto");
+  }
+
+  function addFromForm() {
+    var nameEl = document.getElementById("addName");
+    var catEl = document.getElementById("addCategory");
+    var name = nameEl.value.trim();
+    var cat = catEl.value.trim();
+    if (!name) { toast("Inserisci il nome dell'esercizio"); nameEl.focus(); return; }
+    if (!cat) cat = "Altro";
+    addExercise(name, cat);
+    nameEl.value = "";
+    catEl.value = "";
   }
 
   function escapeHtml(str) {
@@ -771,6 +891,7 @@
     document.getElementById("timerReset").addEventListener("click", resetTimer);
     document.getElementById("finishSession").addEventListener("click", finishSession);
     document.getElementById("newSession").addEventListener("click", newSession);
+    document.getElementById("addBtn").addEventListener("click", addFromForm);
 
     if (state.running) startTimerLoop();
     render();
