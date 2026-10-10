@@ -331,6 +331,23 @@
     cursor: pointer;
   }
 
+  .sec-add:disabled { opacity: 0.3; cursor: default; }
+
+  .move-row { display: flex; gap: 8px; margin-top: 10px; }
+  .move-btn {
+    flex: 1;
+    padding: 9px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .move-btn:disabled { opacity: 0.35; cursor: default; }
+
   .name-field { margin-bottom: 8px; }
   .name-field input { text-align: left; font-family: 'Inter', sans-serif; font-weight: 600; }
 
@@ -631,6 +648,7 @@
       if (ex.done) catTotals[ex.category].done++;
     });
 
+    var cats = categoryOrder();
     var lastCategory = null;
 
     state.exercises.forEach(function(ex, idx) {
@@ -645,12 +663,16 @@
           '<div class="sec-title">' + escapeHtml(ex.category) + '</div>' +
           '<div class="sec-right">' +
             '<div class="sec-count">' + ct.done + '/' + ct.total + '</div>' +
-            '<button class="sec-add" title="Aggiungi esercizio a ' + escapeAttr(ex.category) + '">+</button>' +
+            '<button class="sec-add sec-up" title="Sposta gruppo su"' + (cats.indexOf(ex.category) === 0 ? ' disabled' : '') + '>↑</button>' +
+            '<button class="sec-add sec-down" title="Sposta gruppo giù"' + (cats.indexOf(ex.category) === cats.length - 1 ? ' disabled' : '') + '>↓</button>' +
+            '<button class="sec-add sec-plus" title="Aggiungi esercizio a ' + escapeAttr(ex.category) + '">+</button>' +
           '</div>';
         (function(cat){
-          head.querySelector(".sec-add").addEventListener("click", function(){
+          head.querySelector(".sec-plus").addEventListener("click", function(){
             addExercise("Nuovo esercizio", cat);
           });
+          head.querySelector(".sec-up").addEventListener("click", function(){ moveCategory(cat, -1); });
+          head.querySelector(".sec-down").addEventListener("click", function(){ moveCategory(cat, 1); });
         })(ex.category);
         list.appendChild(head);
       }
@@ -686,6 +708,10 @@
             '<label>Altezza macchina / note</label>' +
             '<textarea data-field="note" placeholder="Es. sedile posizione 4, regolazione braccio...">' + escapeHtml(ex.note) + '</textarea>' +
           '</div>' +
+          '<div class="move-row">' +
+            '<button class="move-btn ex-up"' + (neighborIndex(idx, -1) < 0 ? ' disabled' : '') + '>↑ Sposta su</button>' +
+            '<button class="move-btn ex-down"' + (neighborIndex(idx, 1) < 0 ? ' disabled' : '') + '>↓ Sposta giù</button>' +
+          '</div>' +
           '<button class="del-btn">Rimuovi esercizio</button>' +
         '</div>';
 
@@ -718,6 +744,15 @@
         });
       });
 
+      card.querySelector(".ex-up").addEventListener("click", function(e) {
+        e.stopPropagation();
+        moveExercise(state.exercises.indexOf(ex), -1);
+      });
+      card.querySelector(".ex-down").addEventListener("click", function(e) {
+        e.stopPropagation();
+        moveExercise(state.exercises.indexOf(ex), 1);
+      });
+
       card.querySelector(".del-btn").addEventListener("click", function(e) {
         e.stopPropagation();
         if (!confirm('Rimuovere "' + ex.name + '" dalla scheda?')) return;
@@ -730,8 +765,6 @@
       list.appendChild(card);
     });
 
-    var cats = [];
-    state.exercises.forEach(function(ex){ if (cats.indexOf(ex.category) < 0) cats.push(ex.category); });
     document.getElementById("categoryList").innerHTML = cats.map(function(c){
       return '<option value="' + escapeAttr(c) + '">';
     }).join("");
@@ -742,6 +775,47 @@
 
     renderTimer();
     renderHistory();
+  }
+
+  // ordine dei gruppi = ordine di prima apparizione
+  function categoryOrder() {
+    var cats = [];
+    state.exercises.forEach(function(ex){ if (cats.indexOf(ex.category) < 0) cats.push(ex.category); });
+    return cats;
+  }
+
+  // indice del primo esercizio dello stesso gruppo nella direzione dir (-1/+1), o -1
+  function neighborIndex(idx, dir) {
+    var cat = state.exercises[idx].category;
+    for (var i = idx + dir; i >= 0 && i < state.exercises.length; i += dir) {
+      if (state.exercises[i].category === cat) return i;
+    }
+    return -1;
+  }
+
+  function moveExercise(idx, dir) {
+    var j = neighborIndex(idx, dir);
+    if (j < 0) return;
+    var tmp = state.exercises[idx];
+    state.exercises[idx] = state.exercises[j];
+    state.exercises[j] = tmp;
+    saveState();
+    render();
+  }
+
+  function moveCategory(cat, dir) {
+    var cats = categoryOrder();
+    var i = cats.indexOf(cat), j = i + dir;
+    if (i < 0 || j < 0 || j >= cats.length) return;
+    cats[i] = cats[j];
+    cats[j] = cat;
+    var grouped = [];
+    cats.forEach(function(c){
+      state.exercises.forEach(function(ex){ if (ex.category === c) grouped.push(ex); });
+    });
+    state.exercises = grouped;
+    saveState();
+    render();
   }
 
   function addExercise(name, category) {
