@@ -349,7 +349,8 @@
   .move-btn:disabled { opacity: 0.35; cursor: default; }
 
   .name-field { margin-bottom: 8px; }
-  .name-field input { text-align: left; font-family: 'Inter', sans-serif; font-weight: 600; }
+  .cat-field { margin-bottom: 8px; }
+  .name-field input, .cat-field input { text-align: left; font-family: 'Inter', sans-serif; font-weight: 600; }
 
   .del-btn {
     margin-top: 10px;
@@ -699,6 +700,7 @@
         '</div>' +
         '<div class="ex-detail">' +
           '<div class="field name-field"><label>Nome esercizio</label><input type="text" data-field="name" value="' + escapeAttr(ex.name) + '"></div>' +
+          '<div class="field cat-field"><label>Gruppo</label><input type="text" class="cat-input" list="categoryList" value="' + escapeAttr(ex.category) + '"></div>' +
           '<div class="field-grid">' +
             '<div class="field"><label>Serie</label><input type="text" inputmode="numeric" data-field="sets" value="' + escapeAttr(ex.sets) + '"></div>' +
             '<div class="field"><label>Ripetizioni</label><input type="text" data-field="reps" value="' + escapeAttr(ex.reps) + '"></div>' +
@@ -742,6 +744,15 @@
           ex[input.dataset.field] = input.value;
           saveState();
         });
+      });
+
+      var catInput = card.querySelector(".cat-input");
+      catInput.addEventListener("click", function(e){ e.stopPropagation(); });
+      catInput.addEventListener("change", function() {
+        var cat = catInput.value.trim();
+        if (!cat) { catInput.value = ex.category; return; }
+        if (cat === ex.category) return;
+        changeCategory(ex, cat);
       });
 
       card.querySelector(".ex-up").addEventListener("click", function(e) {
@@ -818,13 +829,25 @@
     render();
   }
 
-  function addExercise(name, category) {
-    var ex = { category: category, name: name, sets: "3", reps: "8", weight: "", note: "", done: false, open: true };
-    // inserisce dopo l'ultimo esercizio dello stesso gruppo, altrimenti in fondo
+  // inserisce dopo l'ultimo esercizio dello stesso gruppo, altrimenti in fondo
+  function insertInCategory(ex) {
     var pos = -1;
-    state.exercises.forEach(function(e, i){ if (e.category === category) pos = i; });
+    state.exercises.forEach(function(e, i){ if (e.category === ex.category) pos = i; });
     if (pos >= 0) state.exercises.splice(pos + 1, 0, ex);
     else state.exercises.push(ex);
+  }
+
+  function changeCategory(ex, cat) {
+    state.exercises.splice(state.exercises.indexOf(ex), 1);
+    ex.category = cat;
+    insertInCategory(ex);
+    saveState();
+    render();
+    toast("Spostato in " + cat);
+  }
+
+  function addExercise(name, category) {
+    insertInCategory({ category: category, name: name, sets: "3", reps: "8", weight: "", note: "", done: false, open: true });
     saveState();
     render();
     toast("Esercizio aggiunto");
