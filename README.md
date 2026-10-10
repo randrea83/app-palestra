@@ -5,6 +5,8 @@ App web statica (HTML + JS, nessuna dipendenza) per gestire la scheda di allenam
 ## Funzionalità
 
 - Esercizi divisi per gruppo muscolare: Corsa, Spalle, Schiena, Braccia, Addome, Petto, Gambe, Ultima corsa
+- Aggiunta e rimozione di esercizi (pulsante "+" per gruppo, modulo in fondo, "Rimuovi esercizio" nel dettaglio)
+- Nome esercizio modificabile
 - Check di completamento per ogni esercizio
 - Campi modificabili per serie, ripetizioni, peso/velocità
 - Campo note per altezza macchina / regolazioni
